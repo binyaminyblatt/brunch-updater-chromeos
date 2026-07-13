@@ -100,28 +100,66 @@ def smart_download_brunch(brunch_url, tag_name):
         hf.write(tag_name)
     return target_tar
 
+def self_update():
+    """Performs a native git pull on the codebase repository workspace."""
+    print("===> Initiating repository self-update via git pull...")
+    
+    if not os.path.exists(os.path.join(WORKDIR, ".git")):
+        print("\033[0;31mERROR: Local .git directory missing inside /usr/local/brcr_updater.\033[0m")
+        print("Auto-update works only if the tool was initially deployed via git clone.")
+        sys.exit(4)
+        
+    try:
+        # Pull updates natively from the tracked origin repository branch
+        result = subprocess.run(["git", "pull", "origin", "main"], cwd=WORKDIR, capture_output=True, text=True)
+        
+        if result.returncode == 0:
+            print(result.stdout)
+            # Ensure the execution bit remains active on the main running file
+            target_executable = os.path.join(WORKDIR, "brcru")
+            if os.path.exists(target_executable):
+                os.chmod(target_executable, 0o755)
+            print("\033[0;32m===> Success! Local repository codebase updated successfully.\033[0m")
+        else:
+            print(f"\033[0;31mERROR: Git pull aborted. Execution log:\n{result.stderr}\033[0m")
+            sys.exit(4)
+            
+    except Exception as e:
+        print(f"\033[0;31mERROR: Failed to invoke git wrapper environment natively. Reason: {e}\033[0m")
+        sys.exit(4)
 
 # ==============================================================================
 # MAIN EXECUTOR PIPELINE
 # ==============================================================================
-def main():
+ARGS = None  # Global variable to hold parsed arguments
+
+def parse_arguments():
+    global ARGS
     parser = argparse.ArgumentParser(prog='Brunch & ChromeOS Updater')
     parser.add_argument('-u', '--unstable', action='store_true', help='Fetch the latest unstable brunch release instead of stable', default=False)
     parser.add_argument('-i', '--info', action='store_true', help='Only display the latest available versions without downloading', default=False)
     parser.add_argument('--dry-run', action='store_true', help='Perform a full version check and display results without downloading or updating', default=False)
     parser.add_argument('-c', '--cleanup', action='store_true', help='Delete downloaded recovery zip/bin files and Brunch archives to free space', default=False)
-    
+    parser.add_argument('--update', action='store_true', help='Perform a git pull to fetch the latest version of this updater tool', default=False)
+
     # New component tracking switches (mutually exclusive group)
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument('-o', '--os-only', action='store_true', help='Only download and update ChromeOS', default=False)
     mode_group.add_argument('-b', '--brunch-only', action='store_true', help='Only download and update the Brunch framework', default=False)
     
-    args = parser.parse_args()
-    GITHUB_DATA_FILE = "github-unstable.json" if args.unstable else "github.json"
-    stability_note = "unstable" if args.unstable else "stable"
+    ARGS = parser.parse_args()
+
+def main():
+    GITHUB_DATA_FILE = "github-unstable.json" if ARGS.unstable else "github.json"
+    stability_note = "unstable" if ARGS.unstable else "stable"
+    
+    # Handle the self-updater execution thread directly if requested
+    if ARGS.update:
+        self_update()
+        return
 
     # Handle the cleanup action directly if requested
-    if args.cleanup:
+    if ARGS.cleanup:
         print("===> Performing directory cleanup...")
         targets = [
             os.path.join(WORKDIR, "recovery.json"),
@@ -151,13 +189,13 @@ def main():
 
     try:
         # 1. Fetch Manifest Files dynamically based on requirements
-        if not args.brunch_only:
+        if not ARGS.brunch_only:
             print("===> Fetching latest ChromeOS recovery data from Google...")
             download_file(RECOVERY_URL, "recovery.json")
         
-        if not args.os_only:
+        if not ARGS.os_only:
             print("===> Fetching latest brunch release data from GitHub API...")
-            if args.unstable:
+            if ARGS.unstable:
                 download_file(GITHUB_API_UNSTABLE_URL, "github-unstable.json")
             else:
                 download_file(GITHUB_API_URL, "github.json")
@@ -190,7 +228,7 @@ def main():
         expected_cros_hash = None
         cros_milestone = cur_cros # Fallback to active milestone if skipping OS parse
         
-        if not args.brunch_only:
+        if not ARGS.brunch_only:
             with open("recovery.json", "r") as rf:
                 recovery_data = json.load(rf)
                 
@@ -208,7 +246,7 @@ def main():
         brunch_tag = None
         brunch_url = None
         
-        if not args.os_only:
+        if not ARGS.os_only:
             with open(GITHUB_DATA_FILE, "r") as gf:
                 github_data = json.load(gf)
                 
@@ -228,26 +266,26 @@ def main():
         
         # 5. Display Cleaned Target Metric Report
         print(f"\nBoard name:                {board}")
-        if not args.brunch_only:
+        if not ARGS.brunch_only:
             print(f"Latest ChromeOS build:     {build_num}")
             print(f"Installed ChromeOS build:  {cur_version}")
             print(f"Latest ChromeOS milestone: {cros_milestone}")
             print(f"Installed OS milestone:    {cur_cros}")
-        if not args.os_only:
+        if not ARGS.os_only:
             print(f"Latest available brunch:   {brunch_tag}")
             print(f"Installed brunch version:  {cur_brunch}")
         print()
         
-        if args.info:
+        if ARGS.info:
             return
         input("Press ENTER to continue downloading updates, or Ctrl+C to abort...")
         
         # 6. Binary Downloader Pipeline Execution
         target_brunch = None
-        if not args.os_only:
+        if not ARGS.os_only:
             target_brunch = smart_download_brunch(brunch_url, brunch_tag)
             
-        if not args.brunch_only:
+        if not ARGS.brunch_only:
             target_zip = smart_download_cros(build_url, expected_cros_hash)
             
             print("===> Unpacking ChromeOS .zip archive...")
@@ -271,7 +309,7 @@ def main():
 
         # 7. Execute Core System Update Framework Natively
         print("===> Updating...")
-        if args.dry_run:
+        if ARGS.dry_run:
             print("\033[0;33mDry run mode enabled. Skipping actual update execution.\033[0m")
             return
             
@@ -279,7 +317,7 @@ def main():
         cmd = ["sudo", "chromeos-update"]
         if target_brunch:
             cmd.extend(["-f", target_brunch])
-        if not args.brunch_only:
+        if not ARGS.brunch_only:
             cmd.extend(["-r", os.path.join(WORKDIR, "chromeos.bin")])
             
         subprocess.run(cmd, check=True)
@@ -298,6 +336,7 @@ if __name__ == "__main__":
     LOCK_FILE = os.path.join(WORKDIR, "brcr_updater.lock")
     
     try:
+        parse_arguments()
         # Open (or create) the lock file and attempt to secure an exclusive, non-blocking lock
         with open(LOCK_FILE, 'w') as lock_fd:
             try:

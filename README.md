@@ -12,6 +12,7 @@ This tool protects against corruption via cryptographic hashing and incorporates
 * **Safety Lock:** Uses kernel-level file locking (`fcntl`) to ensure that **only one instance** of the updater can run at any given time, preventing parallel corrupted image writes.
 * **Modular Upgrades:** Provides targeted flags to update *only* the Brunch framework or *only* the ChromeOS underlying image depending on your maintenance window.
 * **Automated Housekeeping:** Includes an integrated purge switch to quickly scrub large temporary archives and binary recoveries to reclaim multi-gigabyte disk space.
+* **Self Updateing** Includes an integrated switch to natively pull down the latest version of this script via git.
 
 ---
 
@@ -21,11 +22,10 @@ To set up the updater as a permanent system command, execute the following block
 
 ```bash
 # 1. Create the dedicated workspace and clone the repository
-sudo mkdir -p /usr/local/brcr_updater
-sudo git clone https://github.com/binyaminyblatt/brunch-updater-chromeos.git /usr/local/brcr_updater
+git clone https://github.com/binyaminyblatt/brunch-updater-chromeos.git /usr/local/brcr_updater
 
 # 2. Make the script executable
-sudo chmod +x /usr/local/brcr_updater/brcru
+chmod +x /usr/local/brcr_updater/brcru
 
 # 3. Expose it globally by symlinking to /usr/local/bin/brcru
 sudo ln -s /usr/local/brcr_updater/brcru /usr/local/bin/brcru
@@ -53,13 +53,14 @@ Ensure your host user has appropriate administrative rights (`sudo`) configured.
 ## 🛠️ Command-Line Interface Syntax
 
 ```text
-usage: Brunch & ChromeOS Updater [-h] [-u] [-i] [--dry-run] [-c] [-o | -b]
+usage: Brunch & ChromeOS Updater [-h] [-u] [-i] [--dry-run] [-c] [--update] [-o | -b]
 
 options:
   -h, --help        show this help message and exit
   -u, --unstable    Fetch the latest unstable brunch release instead of stable
   -i, --info        Only display the latest available versions without downloading
   -c, --cleanup     Delete downloaded recovery zip/bin files and Brunch archives to free space
+  --update          Perform a git pull to fetch the latest version of this updater tool
   --dry-run         Perform a full version check and display results without downloading or updating
 
 Operational Modes (Mutually Exclusive):
@@ -76,7 +77,7 @@ Operational Modes (Mutually Exclusive):
 Inspect what your current hardware board reports and contrast it with the newest builds available on upstream servers without altering files:
 
 ```bash
-python3 updater.py --info
+brcru --info
 
 ```
 
@@ -85,7 +86,7 @@ python3 updater.py --info
 Download and upgrade both the Brunch base layer and matching ChromeOS target milestone simultaneously:
 
 ```bash
-sudo python3 updater.py
+brcru
 ```
 
 ### 3. Upgrade the Brunch Layer Individually
@@ -93,7 +94,7 @@ sudo python3 updater.py
 Perfect for applying rapid stability or kernel patches without redownloading the main ChromeOS system file:
 
 ```bash
-sudo python3 updater.py --brunch-only
+brcru --brunch-only
 ```
 
 ### 4. Reclaim Disk Storage Space
@@ -101,7 +102,16 @@ sudo python3 updater.py --brunch-only
 Once the upgrade is finalized and your machine successfully boots, run the storage cleaner to delete cached setup files (`.zip`, `.bin`, and `.tar.gz` configurations):
 
 ```bash
-python3 updater.py --cleanup
+brcru --cleanup
+
+```
+
+### 5. Update this Tool
+
+Seamlessly fetch the latest version of the tool code repository using upstream tracking:
+
+```bash
+brcru --update
 
 ```
 
@@ -111,8 +121,8 @@ python3 updater.py --cleanup
 
 The single-instance protection module operates on standard POSIX advisory locking structures.
 
-```
-[User Runs Script] ──► [Checks /var/run/brcr_updater.lock]
+```text
+[User Runs Script] ──► [Checks /usr/local/brcr_updater/brcr_updater.lock]
                              │
                              ├─► [Lock Free] ──► Secures Lock & Executes Pipeline
                              │
