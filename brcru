@@ -271,10 +271,22 @@ def main():
             print(f"Installed ChromeOS build:  {cur_version}")
             print(f"Latest ChromeOS milestone: {cros_milestone}")
             print(f"Installed OS milestone:    {cur_cros}")
+            print()
+            if build_num == cur_version:
+                print("\033[0;32m=> Your ChromeOS installation is already up-to-date!\033[0m")
+            else:
+                print("\033[0;33m=> A newer ChromeOS build is available for your hardware board!\033[0m")
         if not ARGS.os_only:
             print(f"Latest available brunch:   {brunch_tag}")
             print(f"Installed brunch version:  {cur_brunch}")
+            print()
+            if brunch_tag.replace("-stable", "").replace(f"-unstable", "") == cur_brunch:
+                print("\033[0;32m=> Your brunch installation is already up-to-date!\033[0m")
+            else:
+                print("\033[0;33m=> A newer brunch version is available for your hardware board!\033[0m")
         print()
+
+
         
         if ARGS.info:
             return
