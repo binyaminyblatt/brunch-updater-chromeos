@@ -149,7 +149,6 @@ def parse_arguments():
     # Target alternative user fork trees instead of default channels or direct release URLs (mutually exclusive group)
     repo_group = parser.add_mutually_exclusive_group()
     repo_group.add_argument('--brunch-repo', type=str, help='Target GitHub custom repository source path (e.g. "username/repo")', default=None)
-    repo_group.add_argument('--brunch-url', type=str, help='Direct URL to a specific custom Brunch .tar.gz release asset', default=None)
 
     # New component tracking switches (mutually exclusive group)
     mode_group = parser.add_mutually_exclusive_group()
@@ -158,15 +157,11 @@ def parse_arguments():
 
     ARGS = parser.parse_args()
 
-    if ARGS.brunch_repo or ARGS.brunch_url:
+    if ARGS.brunch_repo:
         print("\033[0;34m=> Custom Brunch repository or direct URL specified. Overriding default GitHub API endpoints.\033[0m")
         if ARGS.brunch_repo:
             GITHUB_API_URL = f"https://api.github.com/repos/{ARGS.brunch_repo}/releases"
             GITHUB_API_UNSTABLE_URL = f"https://api.github.com/repos/{ARGS.brunch_repo}/releases"
-        else:
-            # If a direct URL is provided, we will bypass GitHub API and use it directly
-            GITHUB_API_URL = ARGS.brunch_url
-            GITHUB_API_UNSTABLE_URL = ARGS.brunch_url
 
 def main():
     GITHUB_DATA_FILE = "github-unstable.json" if ARGS.unstable else "github.json"
