@@ -15,6 +15,24 @@ This tool protects against corruption via cryptographic hashing and incorporates
 
 ---
 
+## ⚙️ Installation
+
+To set up the updater as a permanent system command, execute the following block to clone the repository to its dedicated workspace and create a global symlink:
+
+```bash
+# 1. Create the dedicated workspace and clone the repository
+sudo mkdir -p /usr/local/brcr_updater
+sudo git clone https://github.com/binyaminyblatt/brunch-updater-chromeos.git /usr/local/brcr_updater
+
+# 2. Make the script executable
+sudo chmod +x /usr/local/brcr_updater/brcru
+
+# 3. Expose it globally by symlinking to /usr/local/bin/brcru
+sudo ln -s /usr/local/brcr_updater/brcru /usr/local/bin/brcru
+```
+
+---
+
 ## 📦 Prerequisites & Architecture
 
 This script is engineered strictly for modern x86_64 architectures.
