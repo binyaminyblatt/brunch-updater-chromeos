@@ -14,13 +14,13 @@ import fcntl
 # ==============================================================================
 # CONFIGURATION & ENVIRONMENT SETUP
 # ==============================================================================
-WORKDIR: str = "/usr/local/brcr_updater"
-RECOVERY_URL: str = "https://dl.google.com/dl/edgedl/chromeos/recovery/recovery.json"
-GITHUB_API_URL: str = "https://api.github.com/repos/sebanc/brunch/releases"
-GITHUB_API_UNSTABLE_URL: str = "https://api.github.com/repos/sebanc/brunch-unstable/releases"
+WORKDIR = "/usr/local/brcr_updater"
+RECOVERY_URL = "https://dl.google.com/dl/edgedl/chromeos/recovery/recovery.json"
+GITHUB_API_URL = "https://api.github.com/repos/sebanc/brunch/releases"
+GITHUB_API_UNSTABLE_URL = "https://api.github.com/repos/sebanc/brunch-unstable/releases"
 
 # Custom headers to emulate a browser and prevent GitHub API bot blocks
-HTTP_HEADERS: dict[str, str] = {"User-Agent": "Mozilla/5.0"}
+HTTP_HEADERS = {"User-Agent": "Mozilla/5.0"}
 
 # Ensure the working directory exists
 os.makedirs(WORKDIR, exist_ok=True)
@@ -39,11 +39,11 @@ def download_file(url, destination):
     """Downloads a file with a browser user-agent and a visible progress helper."""
     print(f"===> Downloading: {url}")
     try:
-        req: urllib.request.Request = urllib.request.Request(url, headers=HTTP_HEADERS)
+        req = urllib.request.Request(url, headers=HTTP_HEADERS)
         with urllib.request.urlopen(req) as response, open(destination, 'wb') as out_file:
-            chunk_size: int = 1024 * 1024  # 1MB
+            chunk_size = 1024 * 1024  # 1MB
             while True:
-                chunk: bytes = response.read(chunk_size)
+                chunk = response.read(chunk_size)
                 if not chunk:
                     break
                 out_file.write(chunk)
@@ -55,7 +55,7 @@ def get_local_sha1(file_path):
     """Calculates the SHA-1 hash of a local file in chunks."""
     if not os.path.exists(file_path):
         return None
-    sha1: hashlib.sha1 = hashlib.sha1()
+    sha1 = hashlib.sha1()
     with open(file_path, 'rb') as f:
         while chunk := f.read(8192):
             sha1.update(chunk)
@@ -63,11 +63,11 @@ def get_local_sha1(file_path):
 
 def smart_download_cros(build_url, expected_hash):
     """Checks local copy of ChromeOS image; skips download if hash matches."""
-    target_zip: str = os.path.join(WORKDIR, "chromeos.bin.zip")
+    target_zip = os.path.join(WORKDIR, "chromeos.bin.zip")
 
     if os.path.exists(target_zip):
         print("===> Local ChromeOS archive found. Verifying integrity...")
-        local_hash: str | None = get_local_sha1(target_zip)
+        local_hash = get_local_sha1(target_zip)
         if local_hash == expected_hash:
             print("\033[0;32m=> Existing local file matches expected checksum! Skipping download.\033[0m")
             return target_zip
@@ -84,14 +84,14 @@ def smart_download_cros(build_url, expected_hash):
 
 def smart_download_brunch(brunch_url, tag_name):
     """Checks local copy of Brunch image; skips download if version tracking matches."""
-    filename: str = brunch_url.split("/")[-1]
-    target_tar: str = os.path.join(WORKDIR, filename)
-    hash_file: str = f"{target_tar}.hash"
+    filename = brunch_url.split("/")[-1]
+    target_tar = os.path.join(WORKDIR, filename)
+    hash_file = f"{target_tar}.hash"
     
     if os.path.exists(target_tar) and os.path.exists(hash_file):
         print("===> Local Brunch archive found. Checking tag signature validation...")
         with open(hash_file, 'r') as hf:
-            cached_tag: str = hf.read().strip()
+            cached_tag = hf.read().strip()
         if cached_tag == tag_name:
             print("\033[0;32m=> Existing local Brunch matches current version token! Skipping download.\033[0m")
             return target_tar
@@ -113,12 +113,12 @@ def self_update():
         
     try:
         # Pull updates natively from the tracked origin repository branch
-        result: subprocess.CompletedProcess = subprocess.run(["git", "pull", "origin", "main"], cwd=WORKDIR, capture_output=True, text=True)
+        result = subprocess.run(["git", "pull", "origin", "main"], cwd=WORKDIR, capture_output=True, text=True)
         
         if result.returncode == 0:
             print(result.stdout)
             # Ensure the execution bit remains active on the main running file
-            target_executable: str = os.path.join(WORKDIR, "brcru")
+            target_executable = os.path.join(WORKDIR, "brcru")
             if os.path.exists(target_executable):
                 os.chmod(target_executable, 0o755)
             print("\033[0;32m===> Success! Local repository codebase updated successfully.\033[0m")
@@ -133,13 +133,13 @@ def self_update():
 # ==============================================================================
 # MAIN EXECUTOR PIPELINE
 # ==============================================================================
-ARGS: argparse.Namespace | None = None  # Global variable to hold parsed arguments
+ARGS = None  # Global variable to hold parsed arguments
 
 def parse_arguments():
     global ARGS
     global GITHUB_API_UNSTABLE_URL
     global GITHUB_API_URL
-    parser: argparse.ArgumentParser = argparse.ArgumentParser(prog='Brunch & ChromeOS Updater', formatter_class=argparse.MetavarTypeHelpFormatter)
+    parser = argparse.ArgumentParser(prog='Brunch & ChromeOS Updater', formatter_class=argparse.MetavarTypeHelpFormatter)
     parser.add_argument('-u', '--unstable', action='store_true', help='Fetch the latest unstable brunch release instead of stable', default=False)
     parser.add_argument('-i', '--info', action='store_true', help='Only display the latest available versions without downloading', default=False)
     parser.add_argument('--dry-run', action='store_true', help='Perform a full version check and display results without downloading or updating', default=False)
@@ -147,16 +147,16 @@ def parse_arguments():
     parser.add_argument('--update', action='store_true', help='Perform a git pull to fetch the latest version of this updater tool', default=False)
 
     # Target alternative user fork trees instead of default channels or direct release URLs (mutually exclusive group)
-    repo_group: argparse._MutuallyExclusiveGroup = parser.add_mutually_exclusive_group()
+    repo_group = parser.add_mutually_exclusive_group()
     repo_group.add_argument('--brunch-repo', type=str, help='Target GitHub custom repository source path (e.g. "username/repo")', default=None)
     repo_group.add_argument('--brunch-url', type=str, help='Direct URL to a specific custom Brunch .tar.gz release asset', default=None)
 
     # New component tracking switches (mutually exclusive group)
-    mode_group: argparse._MutuallyExclusiveGroup = parser.add_mutually_exclusive_group()
+    mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument('-o', '--os-only', action='store_true', help='Only download and update ChromeOS', default=False)
     mode_group.add_argument('-b', '--brunch-only', action='store_true', help='Only download and update the Brunch framework', default=False)
 
-    ARGS: argparse.Namespace = parser.parse_args()
+    ARGS = parser.parse_args()
 
     if ARGS.brunch_repo or ARGS.brunch_url:
         print("\033[0;34m=> Custom Brunch repository or direct URL specified. Overriding default GitHub API endpoints.\033[0m")
@@ -169,8 +169,8 @@ def parse_arguments():
             GITHUB_API_UNSTABLE_URL = ARGS.brunch_url
 
 def main():
-    GITHUB_DATA_FILE: str = "github-unstable.json" if ARGS.unstable else "github.json"
-    stability_note: str = "unstable" if ARGS.unstable else "stable"
+    GITHUB_DATA_FILE = "github-unstable.json" if ARGS.unstable else "github.json"
+    stability_note = "unstable" if ARGS.unstable else "stable"
 
     # Handle the self-updater execution thread directly if requested
     if ARGS.update:
@@ -180,7 +180,7 @@ def main():
     # Handle the cleanup action directly if requested
     if ARGS.cleanup:
         print("===> Performing directory cleanup...")
-        targets: list[str] = [
+        targets = [
             os.path.join(WORKDIR, "recovery.json"),
             os.path.join(WORKDIR, "github.json"),
             os.path.join(WORKDIR, "github-unstable.json"),
@@ -190,7 +190,7 @@ def main():
             *glob.glob(os.path.join(WORKDIR, "brunch_download_*.tar.gz.hash"))
         ]
         
-        removed_count: int = 0
+        removed_count = 0
         for target in targets:
             if os.path.exists(target):
                 try:
@@ -221,31 +221,31 @@ def main():
             print(f"===> Fetched the latest {stability_note} brunch release data from GitHub API...")
 
         # 2. Parse Board Name and current installation versions natively
-        board: str = "unknown"
-        cur_version: str = "unknown"
-        cur_cros: str = "unknown"
+        board = "unknown"
+        cur_version = "unknown"
+        cur_cros = "unknown"
         if os.path.exists("/etc/lsb-release"):
             with open("/etc/lsb-release", "r") as f:
                 for line in f:
                     if "CHROMEOS_RELEASE_DESCRIPTION=" in line:
-                        board: str = line.strip().split()[-2 if "MP" in line else -1]
+                        board = line.strip().split()[-2 if "MP" in line else -1]
                     elif "CHROMEOS_RELEASE_VERSION=" in line:
-                        cur_version: str = line.strip().split("=")[-1]
+                        cur_version = line.strip().split("=")[-1]
                     elif "CHROMEOS_RELEASE_CHROME_MILESTONE=" in line:
-                        cur_cros: str = line.strip().split("=")[-1]
+                        cur_cros = line.strip().split("=")[-1]
 
-        cur_brunch: str = "unknown"
+        cur_brunch = "unknown"
         if os.path.exists("/etc/brunch_version"):
             with open("/etc/brunch_version", "r") as f:
-                cur_brunch: str = f.read().strip().split(maxsplit=1)[-1].replace(" ", "-")
+                cur_brunch = f.read().strip().split(maxsplit=1)[-1].replace(" ", "-")
 
         print(f"===> Parsing update metadata for hardware board: {board}")
         
         # 3. Process ChromeOS Data Matrix if requested
-        build_num: str = ''
-        build_url: str  = ''
-        expected_cros_hash: str = ''
-        cros_milestone: str = cur_cros # Fallback to active milestone if skipping OS parse
+        build_num = ''
+        build_url = ''
+        expected_cros_hash = ''
+        cros_milestone = cur_cros # Fallback to active milestone if skipping OS parse
 
         if not ARGS.brunch_only:
             with open("recovery.json", "r") as rf:
@@ -256,32 +256,32 @@ def main():
                 print(f"\033[0;31mERROR: Hardware board configuration for '{board}' not found in recovery.json\033[0m")
                 sys.exit(1)
                 
-            build_num: str = cros_meta["version"]
-            build_url: str = cros_meta["url"]
-            expected_cros_hash: str = cros_meta["sha1"]
-            cros_milestone: str = cros_meta["chrome_version"].split(".")[0]
+            build_num = cros_meta["version"]
+            build_url = cros_meta["url"]
+            expected_cros_hash = cros_meta["sha1"]
+            cros_milestone = cros_meta["chrome_version"].split(".")[0]
         
         # 4. Process Brunch Framework Data Matrix if requested
-        brunch_tag: str = ''
-        brunch_url: str = ''
+        brunch_tag = ''
+        brunch_url = ''
         
         if not ARGS.os_only:
             with open(GITHUB_DATA_FILE, "r") as gf:
-                github_data: list = json.load(gf)
+                github_data = json.load(gf)
                 
-            target_tag: str = f"r{cros_milestone}-{stability_note}"
-            brunch_meta: dict | None = next((item for item in github_data if item.get("tag_name", "").startswith(target_tag)), None)
+            target_tag = f"r{cros_milestone}-{stability_note}"
+            brunch_meta = next((item for item in github_data if item.get("tag_name", "").startswith(target_tag)), None)
             
             if not brunch_meta:
                 # Secondary loose-match backup criteria for development versions
-                brunch_meta: dict | None = next((item for item in github_data if item.get("tag_name", "").startswith(f"r{cros_milestone}")), None)
+                brunch_meta = next((item for item in github_data if item.get("tag_name", "").startswith(f"r{cros_milestone}")), None)
                 
             if not brunch_meta:
                 print(f"\033[0;31mThe {stability_note} brunch update for r{cros_milestone} version of Chrome OS has not yet been released\033[0m")
                 sys.exit(0)
                 
-            brunch_tag: str = brunch_meta["tag_name"]
-            brunch_url: str = brunch_meta["assets"][0]["browser_download_url"]
+            brunch_tag = brunch_meta["tag_name"]
+            brunch_url = brunch_meta["assets"][0]["browser_download_url"]
         
         # 5. Display Cleaned Target Metric Report
         print(f"\nBoard name:                {board}")
@@ -318,12 +318,12 @@ def main():
         input("Press ENTER to continue downloading updates, or Ctrl+C to abort...")
         
         # 6. Binary Downloader Pipeline Execution
-        target_brunch: str = ''
+        target_brunch = ''
         if not ARGS.os_only:
-            target_brunch: str = smart_download_brunch(brunch_url, brunch_tag)
+            target_brunch = smart_download_brunch(brunch_url, brunch_tag)
             
         if not ARGS.brunch_only:
-            target_zip: str = smart_download_cros(build_url, expected_cros_hash)
+            target_zip = smart_download_cros(build_url, expected_cros_hash)
             
             print("===> Unpacking ChromeOS .zip archive...")
             try:
@@ -335,8 +335,8 @@ def main():
                 
             for filename in os.listdir(WORKDIR):
                 if filename.startswith("chromeos_") and filename.endswith(".bin"):
-                    src_path: str = os.path.join(WORKDIR, filename)
-                    dest_path: str = os.path.join(WORKDIR, "chromeos.bin")
+                    src_path = os.path.join(WORKDIR, filename)
+                    dest_path = os.path.join(WORKDIR, "chromeos.bin")
                     try:
                         os.rename(src_path, dest_path)
                     except OSError as e:
@@ -351,7 +351,7 @@ def main():
             return
             
         # Dynamically append arguments based on operational flags
-        cmd: list[str] = ["sudo", "chromeos-update"]
+        cmd = ["sudo", "chromeos-update"]
         if target_brunch:
             cmd.extend(["-f", target_brunch])
         if not ARGS.brunch_only:
@@ -374,7 +374,7 @@ if __name__ == "__main__":
 
         # Detect if we are running outside of native ChromeOS (e.g., Crostini 'penguin' container)
         # If running as a non-chronos dev user, bypass locking entirely
-        user_envs: set[str] = {
+        user_envs = {
             os.getenv('USERNAME', ''),
             os.getenv('LOGNAME', ''),
             os.getenv('USER', ''),
@@ -382,16 +382,16 @@ if __name__ == "__main__":
             pwd.getpwuid(os.getuid())[0]
         }
         user_envs.discard('')
-        is_production: bool = bool(user_envs.intersection({"chronos", "root"}))
-        is_development: bool = not is_production
+        is_production = bool(user_envs.intersection({"chronos", "root"}))
+        is_development = not is_production
 
         if is_development:
-            display_users: str = ", ".join(sorted(user_envs))
+            display_users = ", ".join(sorted(user_envs))
             print(f"\033[0;34m=> Development environment detected (User: {display_users}). Bypassing execution lock.\033[0m")
             main()
         else:
             # Fall back to standard exclusive locking for production environments (crosh)
-            LOCK_FILE: str = os.path.join(WORKDIR, "brcr_updater.lock")
+            LOCK_FILE = os.path.join(WORKDIR, "brcr_updater.lock")
             with open(LOCK_FILE, 'w') as lock_fd:
                 try:
                     fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
