@@ -277,6 +277,11 @@ def main():
             else:
                 print("\033[0;33m=> A newer ChromeOS build is available for your hardware board!\033[0m")
             print()
+            if cros_milestone == cur_cros:
+                print("\033[0;32m=> Your ChromeOS milestone is already up-to-date!\033[0m")
+            else:
+                print("\033[0;33m=> A newer ChromeOS milestone is available for your hardware board!\033[0m")
+            print()
         if not ARGS.os_only:
             print(f"Latest available brunch:   {brunch_tag}")
             print(f"Installed brunch version:  {cur_brunch}")
