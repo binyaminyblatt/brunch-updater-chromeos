@@ -124,9 +124,9 @@ def main():
     if args.cleanup:
         print("===> Performing directory cleanup...")
         targets = [
-            "recovery.json",
-            "github.json",
-            "github-unstable.json",
+            os.path.join(WORKDIR, "recovery.json"),
+            os.path.join(WORKDIR, "github.json"),
+            os.path.join(WORKDIR, "github-unstable.json"),
             os.path.join(WORKDIR, "chromeos.bin.zip"),
             os.path.join(WORKDIR, "chromeos.bin"),
             *glob.glob(os.path.join(WORKDIR, "brunch_download_*.tar.gz")),
